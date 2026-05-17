@@ -1,5 +1,5 @@
 // src/pages/Admin/EventReportForm.jsx
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { Button, FormField, Input, useToast } from '../../components/common/UI';
 import ImageUploader from '../../components/common/ImageUploader';
@@ -150,7 +150,7 @@ function FileUploadField({ label, value, onChange, accept, required, maxSize }) 
   );
 }
 
-export default function EventReportForm({ initial, onSave, onClose, saving }) {
+export default function EventReportForm({ initial, onSave, onClose, saving, onPreviewChange }) {
   const { user } = useAuth();
   const toast = useToast();
   
@@ -197,6 +197,10 @@ export default function EventReportForm({ initial, onSave, onClose, saving }) {
   });
 
   const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    onPreviewChange?.({ ...form, type: 'Event' });
+  }, [form, onPreviewChange]);
 
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
 

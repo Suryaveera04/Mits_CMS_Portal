@@ -17,6 +17,12 @@ app.use('/api/submissions',   require('./routes/submissions'));
 app.use('/api/events',        require('./routes/events'));
 app.use('/api/trending',      require('./routes/trending'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/achievements',  require('./routes/achievements'));
+app.use('/api/patents',       require('./routes/patents'));
+app.use('/api/publications',  require('./routes/publications'));
+app.use('/api/placements',    require('./routes/placements'));
+app.use('/api/projects',      require('./routes/projects'));
+app.use('/api/subjects',      require('./routes/subjects'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

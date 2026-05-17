@@ -1,5 +1,5 @@
 // src/pages/Admin/MoUReportForm.jsx
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { Button, FormField, Input, useToast } from '../../components/common/UI';
 import ImageUploader from '../../components/common/ImageUploader';
@@ -126,7 +126,7 @@ function CheckboxGroup({ options, selected, onChange, label }) {
   );
 }
 
-export default function MoUReportForm({ initial, onSave, onClose, saving }) {
+export default function MoUReportForm({ initial, onSave, onClose, saving, onPreviewChange }) {
   const { user } = useAuth();
   
   const [expandedSections, setExpandedSections] = useState({
@@ -171,6 +171,10 @@ export default function MoUReportForm({ initial, onSave, onClose, saving }) {
 
   const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  useEffect(() => {
+    onPreviewChange?.({ ...form, type: 'MoU' });
+  }, [form, onPreviewChange]);
 
   const computedDuration = useMemo(() => calculateDuration(form.startDate, form.endDate), [form.startDate, form.endDate]);
   const computedStatus = useMemo(() => getMoUStatus(form.endDate), [form.endDate]);

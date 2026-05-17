@@ -10,16 +10,24 @@ import {
   Plus, Calendar, Handshake, Search, Pencil, Trash2,
   Play, Newspaper, TrendingUp, ExternalLink,
   Tag, Eye, X, Globe, AlertTriangle, MapPin, Building,
+  Award, FileText, BookOpen, Briefcase, Code, ClipboardList,
 } from 'lucide-react';
 import styles from './ContentStudio.module.css';
+import SubjectsCurriculum from './SubjectsCurriculum';
 
-const TABS = ['Events', 'MoUs', 'News', 'Trending'];
+const TABS = ['Events', 'MoUs', 'News', 'Trending', 'Achievements', 'Patents', 'Publications', 'Placements', 'Projects', 'Subjects'];
 
 const TAB_META = {
   Events:   { icon: Calendar,   color: '#DB2777', bg: '#FDF2F8', type: 'Event'    },
   MoUs:     { icon: Handshake,  color: '#0891B2', bg: '#ECFEFF', type: 'MoU'      },
   News:     { icon: Newspaper,  color: '#0F766E', bg: '#F0FDFA', type: 'News'     },
   Trending: { icon: TrendingUp, color: '#7C3AED', bg: '#F5F3FF', type: 'Trending' },
+  Achievements: { icon: Award,      color: '#0EA5A4', bg: '#ECFEFF', type: 'Achievement' },
+  Patents:      { icon: FileText,   color: '#7C3AED', bg: '#F5F3FF', type: 'Patent'      },
+  Publications: { icon: BookOpen,   color: '#1E40AF', bg: '#EEF2FF', type: 'Publication' },
+  Placements:   { icon: Briefcase,  color: '#DC2626', bg: '#FFEDEE', type: 'Placement'   },
+  Projects:     { icon: Code,       color: '#2563EB', bg: '#EFF6FF', type: 'Project'     },
+  Subjects:     { icon: ClipboardList, color: '#065F46', bg: '#ECFDF5', type: 'Subject'   },
 };
 
 const STATUS_STYLE = {
@@ -477,7 +485,17 @@ function ContentCard({ item, onEdit, onDelete, onView, tabMeta }) {
 /* ── Main ── */
 export default function ContentStudio() {
   const { user } = useAuth();
-  const { events, deleteEvent, trending, deleteTrending, faculty } = useData();
+  const {
+    events, deleteEvent,
+    trending, deleteTrending,
+    achievements, deleteAchievement,
+    patents, deletePatent,
+    publications, deletePublication,
+    placements, deletePlacement,
+    projects, deleteProject,
+    subjects, deleteSubject,
+    faculty,
+  } = useData();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -490,7 +508,7 @@ export default function ContentStudio() {
 
   const isAdmin       = user?.role === 'ADMIN';
   const isTrendingTab = activeTab === 'Trending';
-  const tabMeta       = TAB_META[activeTab];
+  const tabMeta       = TAB_META[activeTab] || TAB_META.Events;
 
   const departments = useMemo(
     () => ['All', ...new Set(faculty.map(f => f.department).filter(Boolean))],
@@ -498,11 +516,27 @@ export default function ContentStudio() {
   );
 
   const allItems = useMemo(() => {
-    const base = isTrendingTab
-      ? trending.filter(t => isAdmin || t.department === user?.department)
-      : events.filter(e => e.type === tabMeta.type);
-    return base;
-  }, [activeTab, events, trending, isAdmin, user?.department]);
+    switch (activeTab) {
+      case 'Trending':
+        return trending.filter(t => isAdmin || t.department === user?.department);
+      case 'Events': case 'MoUs': case 'News':
+        return events.filter(e => e.type === tabMeta.type);
+      case 'Achievements':
+        return achievements.filter(a => isAdmin || a.department === user?.department);
+      case 'Patents':
+        return patents.filter(p => isAdmin || p.department === user?.department);
+      case 'Publications':
+        return publications.filter(p => isAdmin || p.department === user?.department);
+      case 'Placements':
+        return placements.filter(p => isAdmin || p.department === user?.department);
+      case 'Projects':
+        return projects.filter(p => isAdmin || p.department === user?.department);
+      case 'Subjects':
+        return subjects.filter(s => isAdmin || s.department === user?.department);
+      default:
+        return [];
+    }
+  }, [activeTab, events, trending, achievements, patents, publications, placements, projects, subjects, isAdmin, user?.department]);
 
   const items = useMemo(() => allItems.filter(item =>
     (statusFilter === 'All' || item.status === statusFilter) &&
@@ -512,11 +546,17 @@ export default function ContentStudio() {
   ), [allItems, statusFilter, deptFilter, search]);
 
   const tabCounts = useMemo(() => ({
-    Events:   events.filter(e => e.type === 'Event').length,
-    MoUs:     events.filter(e => e.type === 'MoU').length,
-    News:     events.filter(e => e.type === 'News').length,
-    Trending: trending.length,
-  }), [events, trending]);
+    Events:       events.filter(e => e.type === 'Event').length,
+    MoUs:         events.filter(e => e.type === 'MoU').length,
+    News:         events.filter(e => e.type === 'News').length,
+    Trending:     trending.length,
+    Achievements: achievements.length,
+    Patents:      patents.length,
+    Publications: publications.length,
+    Placements:   placements.length,
+    Projects:     projects.length,
+    Subjects:     subjects.length,
+  }), [events, trending, achievements, patents, publications, placements, projects, subjects]);
 
   const handleEdit = (item) => {
     const type = item.type;
@@ -531,8 +571,17 @@ export default function ContentStudio() {
   const handleDelete = () => {
     if (!deleteTarget) return;
     const id = deleteTarget._id || deleteTarget.id;
-    if (isTrendingTab) deleteTrending(id);
-    else               deleteEvent(id);
+    switch (activeTab) {
+      case 'Trending': deleteTrending(id); break;
+      case 'Events': case 'MoUs': case 'News': deleteEvent(id); break;
+      case 'Achievements': deleteAchievement(id); break;
+      case 'Patents': deletePatent(id); break;
+      case 'Publications': deletePublication(id); break;
+      case 'Placements': deletePlacement(id); break;
+      case 'Projects': deleteProject(id); break;
+      case 'Subjects': deleteSubject(id); break;
+      default: break;
+    }
     if (viewItem && (viewItem._id || viewItem.id) === id) setViewItem(null);
     setDeleteTarget(null);
     toast('Item deleted', 'warning');
@@ -623,7 +672,11 @@ export default function ContentStudio() {
       </div>
 
       {/* GRID */}
-      {items.length === 0 ? (
+      {activeTab === 'Subjects' ? (
+        <div>
+          <SubjectsCurriculum department={isAdmin ? null : user?.department} />
+        </div>
+      ) : (items.length === 0 ? (
         <div className={styles.emptyWrap}>
           <EmptyState
             icon={tabMeta.icon}
@@ -649,7 +702,7 @@ export default function ContentStudio() {
             />
           ))}
         </div>
-      )}
+      ))}
 
       {/* VIEW MODAL */}
       {viewItem && (

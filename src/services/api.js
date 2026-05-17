@@ -76,6 +76,78 @@ export const trendingAPI = {
   remove:  (id)       => del(`/trending/${id}`),
 };
 
+// ── Achievements ───────────────────────────────────────────────────────────
+export const achievementsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/achievements${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/achievements/${id}`),
+  create:  (data)     => post('/achievements', data),
+  update:  (id, data) => put(`/achievements/${id}`, data),
+  remove:  (id)       => del(`/achievements/${id}`),
+};
+
+// ── Patents ───────────────────────────────────────────────────────────────
+export const patentsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/patents${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/patents/${id}`),
+  create:  (data)     => post('/patents', data),
+  update:  (id, data) => put(`/patents/${id}`, data),
+  remove:  (id)       => del(`/patents/${id}`),
+};
+
+// ── Publications ──────────────────────────────────────────────────────────
+export const publicationsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/publications${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/publications/${id}`),
+  create:  (data)     => post('/publications', data),
+  update:  (id, data) => put(`/publications/${id}`, data),
+  remove:  (id)       => del(`/publications/${id}`),
+};
+
+// ── Placements & Training ─────────────────────────────────────────────────
+export const placementsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/placements${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/placements/${id}`),
+  create:  (data)     => post('/placements', data),
+  update:  (id, data) => put(`/placements/${id}`, data),
+  remove:  (id)       => del(`/placements/${id}`),
+};
+
+// ── Student Projects ─────────────────────────────────────────────────────
+export const projectsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/projects${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/projects/${id}`),
+  create:  (data)     => post('/projects', data),
+  update:  (id, data) => put(`/projects/${id}`, data),
+  remove:  (id)       => del(`/projects/${id}`),
+};
+
+// ── Subjects / Curriculum ─────────────────────────────────────────────────
+export const subjectsAPI = {
+  getAll: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/subjects${qs ? '?' + qs : ''}`);
+  },
+  getOne:  (id)       => get(`/subjects/${id}`),
+  create:  (data)     => post('/subjects', data),
+  update:  (id, data) => put(`/subjects/${id}`, data),
+  remove:  (id)       => del(`/subjects/${id}`),
+};
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 export const notificationsAPI = {
   getAll:   (userId) => get(`/notifications?userId=${userId}`),

@@ -28,9 +28,25 @@ export default function Login() {
     handleApiLogin(c.email, c.password);
   };
 
+  const mockUsers = [
+    { id: '1', name: 'Surya', email: 'surya@mits.edu', password: 'Surya@123', role: 'FACULTY', department: 'AIML', designation: 'Assistant Professor', avatar: null },
+    { id: '2', name: 'Raghu', email: 'raghu@mits.edu', password: 'Surya@123', role: 'FACULTY', department: 'AIML', designation: 'Assistant Professor', avatar: null },
+    { id: '3', name: 'Padma', email: 'padma@mits.edu', password: 'Surya@123', role: 'HOD', department: 'AIML', designation: 'Professor & HOD', avatar: null },
+  ];
+
+  const localMockLogin = (loginEmail, loginPassword) => {
+    const found = mockUsers.find(u => u.email.toLowerCase() === String(loginEmail).toLowerCase().trim());
+    if (!found || found.password !== loginPassword) {
+      throw new Error('Invalid email or password (mock)');
+    }
+    const { id, name, role, department, designation, avatar, email } = found;
+    return { id, name, email, role, department, designation, avatar };
+  };
+
   const handleApiLogin = async (loginEmail, loginPassword) => {
     setError('');
     setLoading(true);
+    // Try real backend first, fall back to local mock if network fails or backend unreachable
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
@@ -42,8 +58,15 @@ export default function Login() {
       login(data);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      // network error or server down -> use mock
+      try {
+        const data = localMockLogin(loginEmail, loginPassword);
+        login(data);
+        navigate('/dashboard');
+      } catch (mockErr) {
+        setError(mockErr.message || err.message || 'Login failed');
+        setLoading(false);
+      }
     }
   };
 

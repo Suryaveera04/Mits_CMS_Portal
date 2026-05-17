@@ -1,11 +1,11 @@
 // src/pages/Admin/ContentTrendingForm.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, FormField, Input } from '../../components/common/UI';
 import ImageUploader from '../../components/common/ImageUploader';
 import { Save, Send, Play } from 'lucide-react';
 import styles from './ContentTrendingForm.module.css';
 
-export default function ContentTrendingForm({ initial, onSave, onClose, saving }) {
+export default function ContentTrendingForm({ initial, onSave, onClose, saving, onPreviewChange }) {
   const [form, setForm] = useState({
     title: '',
     reelUrl: '',
@@ -16,6 +16,10 @@ export default function ContentTrendingForm({ initial, onSave, onClose, saving }
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const canSubmit = form.title?.trim() && form.reelUrl?.trim();
+
+  useEffect(() => {
+    onPreviewChange?.({ ...form, type: 'Trending' });
+  }, [form, onPreviewChange]);
 
   return (
     <div className={styles.root}>

@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo } 
 import {
   facultyAPI, profileAPI, submissionsAPI,
   eventsAPI, trendingAPI, notificationsAPI,
+  achievementsAPI, patentsAPI, publicationsAPI,
+  placementsAPI, projectsAPI, subjectsAPI,
 } from '../services/api';
 import { useAuth } from './useAuth';
 
@@ -93,6 +95,12 @@ export function DataProvider({ children }) {
   const [submissions,    setSubmissions]    = useState([]);
   const [events,         setEvents]         = useState([]);
   const [trending,       setTrending]       = useState([]);
+  const [achievements,   setAchievements]   = useState([]);
+  const [patents,        setPatents]        = useState([]);
+  const [publications,   setPublications]   = useState([]);
+  const [placements,     setPlacements]     = useState([]);
+  const [projects,       setProjects]       = useState([]);
+  const [subjects,       setSubjects]       = useState([]);
   const [notifications,  setNotifications]  = useState([]);
   const [lastSubmittedProfile, setLastSubmittedProfile] = useState(null);
   const [loading,        setLoading]        = useState(true);
@@ -117,16 +125,28 @@ export function DataProvider({ children }) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [fac, subs, evs, trnd] = await Promise.all([
+        const [fac, subs, evs, trnd, achs, pats, pubs, plas, projs, subsjs] = await Promise.all([
           facultyAPI.getAll(),
           submissionsAPI.getAll(),
           eventsAPI.getAll(),
           trendingAPI.getAll(),
+          achievementsAPI.getAll(),
+          patentsAPI.getAll(),
+          publicationsAPI.getAll(),
+          placementsAPI.getAll(),
+          projectsAPI.getAll(),
+          subjectsAPI.getAll(),
         ]);
         setFaculty(fac);
         setSubmissions(subs);
         setEvents(evs);
         setTrending(trnd);
+        setAchievements(achs);
+        setPatents(pats);
+        setPublications(pubs);
+        setPlacements(plas);
+        setProjects(projs);
+        setSubjects(subsjs);
 
         // Load profile for current user
         try {
@@ -415,6 +435,93 @@ export function DataProvider({ children }) {
 
   const getAllTrending = useCallback(() => trending, [trending]);
 
+  // ── ACHIEVEMENTS / PATENTS / PUBLICATIONS / PLACEMENTS / PROJECTS / SUBJECTS ──
+  const addAchievement = useCallback(async (data) => {
+    try {
+      const created = await achievementsAPI.create({ ...data, date: data.date || new Date().toISOString().slice(0,10) });
+      setAchievements((prev) => [created, ...prev]);
+      return created;
+    } catch (e) { console.error('addAchievement error:', e.message); throw e; }
+  }, []);
+
+  const updateAchievement = useCallback(async (id, data) => {
+    try {
+      const updated = await achievementsAPI.update(id, data);
+      setAchievements((prev) => prev.map((a) => (a._id === id || a.id === id) ? updated : a));
+      return updated;
+    } catch (e) { console.error('updateAchievement error:', e.message); throw e; }
+  }, []);
+
+  const deleteAchievement = useCallback(async (id) => {
+    try { await achievementsAPI.remove(id); setAchievements((prev) => prev.filter((a) => a._id !== id && a.id !== id)); }
+    catch (e) { console.error('deleteAchievement error:', e.message); throw e; }
+  }, []);
+
+  const addPatent = useCallback(async (data) => {
+    try { const created = await patentsAPI.create(data); setPatents((prev) => [created, ...prev]); return created; }
+    catch (e) { console.error('addPatent error:', e.message); throw e; }
+  }, []);
+  const updatePatent = useCallback(async (id, data) => {
+    try { const updated = await patentsAPI.update(id, data); setPatents((prev) => prev.map((p) => (p._id === id || p.id === id) ? updated : p)); return updated; }
+    catch (e) { console.error('updatePatent error:', e.message); throw e; }
+  }, []);
+  const deletePatent = useCallback(async (id) => {
+    try { await patentsAPI.remove(id); setPatents((prev) => prev.filter((p) => p._id !== id && p.id !== id)); }
+    catch (e) { console.error('deletePatent error:', e.message); throw e; }
+  }, []);
+
+  const addPublication = useCallback(async (data) => {
+    try { const created = await publicationsAPI.create(data); setPublications((prev) => [created, ...prev]); return created; }
+    catch (e) { console.error('addPublication error:', e.message); throw e; }
+  }, []);
+  const updatePublication = useCallback(async (id, data) => {
+    try { const updated = await publicationsAPI.update(id, data); setPublications((prev) => prev.map((p) => (p._id === id || p.id === id) ? updated : p)); return updated; }
+    catch (e) { console.error('updatePublication error:', e.message); throw e; }
+  }, []);
+  const deletePublication = useCallback(async (id) => {
+    try { await publicationsAPI.remove(id); setPublications((prev) => prev.filter((p) => p._id !== id && p.id !== id)); }
+    catch (e) { console.error('deletePublication error:', e.message); throw e; }
+  }, []);
+
+  const addPlacement = useCallback(async (data) => {
+    try { const created = await placementsAPI.create(data); setPlacements((prev) => [created, ...prev]); return created; }
+    catch (e) { console.error('addPlacement error:', e.message); throw e; }
+  }, []);
+  const updatePlacement = useCallback(async (id, data) => {
+    try { const updated = await placementsAPI.update(id, data); setPlacements((prev) => prev.map((p) => (p._id === id || p.id === id) ? updated : p)); return updated; }
+    catch (e) { console.error('updatePlacement error:', e.message); throw e; }
+  }, []);
+  const deletePlacement = useCallback(async (id) => {
+    try { await placementsAPI.remove(id); setPlacements((prev) => prev.filter((p) => p._id !== id && p.id !== id)); }
+    catch (e) { console.error('deletePlacement error:', e.message); throw e; }
+  }, []);
+
+  const addProject = useCallback(async (data) => {
+    try { const created = await projectsAPI.create(data); setProjects((prev) => [created, ...prev]); return created; }
+    catch (e) { console.error('addProject error:', e.message); throw e; }
+  }, []);
+  const updateProject = useCallback(async (id, data) => {
+    try { const updated = await projectsAPI.update(id, data); setProjects((prev) => prev.map((p) => (p._id === id || p.id === id) ? updated : p)); return updated; }
+    catch (e) { console.error('updateProject error:', e.message); throw e; }
+  }, []);
+  const deleteProject = useCallback(async (id) => {
+    try { await projectsAPI.remove(id); setProjects((prev) => prev.filter((p) => p._id !== id && p.id !== id)); }
+    catch (e) { console.error('deleteProject error:', e.message); throw e; }
+  }, []);
+
+  const addSubject = useCallback(async (data) => {
+    try { const created = await subjectsAPI.create(data); setSubjects((prev) => [created, ...prev]); return created; }
+    catch (e) { console.error('addSubject error:', e.message); throw e; }
+  }, []);
+  const updateSubject = useCallback(async (id, data) => {
+    try { const updated = await subjectsAPI.update(id, data); setSubjects((prev) => prev.map((s) => (s._id === id || s.id === id) ? updated : s)); return updated; }
+    catch (e) { console.error('updateSubject error:', e.message); throw e; }
+  }, []);
+  const deleteSubject = useCallback(async (id) => {
+    try { await subjectsAPI.remove(id); setSubjects((prev) => prev.filter((s) => s._id !== id && s.id !== id)); }
+    catch (e) { console.error('deleteSubject error:', e.message); throw e; }
+  }, []);
+
   // ── PUBLIC SELECTORS ───────────────────────────────────────────────────────
   const isPublic = (item) => item.status === 'Approved' || item.status === 'Published';
 
@@ -491,7 +598,7 @@ export function DataProvider({ children }) {
       // State
       submissions, setSubmissions,
       profileSections, approvedProfile, profileStatus, setProfileStatus,
-      events, trending, faculty, setFaculty,
+      events, trending, achievements, patents, publications, placements, projects, subjects, faculty, setFaculty,
       notifications, unreadCount,
       lastSubmittedProfile,
 
@@ -508,6 +615,24 @@ export function DataProvider({ children }) {
       // Trending
       addTrending, updateTrending, deleteTrending,
       getTrendingByDepartment, getAllTrending,
+
+      // Achievements
+      achievements, addAchievement, updateAchievement, deleteAchievement,
+
+      // Patents
+      patents, addPatent, updatePatent, deletePatent,
+
+      // Publications
+      publications, addPublication, updatePublication, deletePublication,
+
+      // Placements / Training
+      placements, addPlacement, updatePlacement, deletePlacement,
+
+      // Student Projects
+      projects, addProject, updateProject, deleteProject,
+
+      // Subjects / Curriculum
+      subjects, addSubject, updateSubject, deleteSubject,
 
       // Public selectors
       getPublicEvents, getPublicTrending, getPublicFaculty, getPublicProfileSections,

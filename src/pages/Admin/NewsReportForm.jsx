@@ -1,5 +1,5 @@
 // src/pages/Admin/NewsReportForm.jsx
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { Button, FormField, Input, useToast } from '../../components/common/UI';
 import ImageUploader from '../../components/common/ImageUploader';
@@ -39,7 +39,7 @@ function Section({ title, icon: Icon, color, children, expanded, onToggle, secti
   );
 }
 
-export default function NewsReportForm({ initial, onSave, onClose, saving }) {
+export default function NewsReportForm({ initial, onSave, onClose, saving, onPreviewChange }) {
   const { user } = useAuth();
   
   const [expandedSections, setExpandedSections] = useState({
@@ -65,6 +65,10 @@ export default function NewsReportForm({ initial, onSave, onClose, saving }) {
 
   const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  useEffect(() => {
+    onPreviewChange?.({ ...form, type: 'News' });
+  }, [form, onPreviewChange]);
 
   const isAllSectionsComplete = useMemo(() => ({
     basic: !!(form.title && form.date),
