@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import styles from './NewsReportForm.module.css';
 
-const DEPARTMENTS = ['Computer Science', 'Electronics', 'Mechanical', 'Civil', 'Mathematics', 'Physics', 'Chemistry'];
+import { DEPARTMENTS } from '../../constants/departments';
 
 const NEWS_CATEGORIES = ['Announcement', 'Achievement', 'Event Highlight', 'General News'];
 
@@ -49,7 +49,7 @@ export default function NewsReportForm({ initial, onSave, onClose, saving, onPre
   const [form, setForm] = useState({
     newsId: initial?.newsId || generateNewsId(),
     title: initial?.title || '',
-    department: initial?.department || user?.department || 'Computer Science',
+    department: initial?.department || user?.department || DEPARTMENTS[0]?.code || '',
     category: initial?.category || '',
     date: initial?.date || new Date().toISOString().slice(0, 10),
     summary: initial?.summary || '',
@@ -107,7 +107,7 @@ export default function NewsReportForm({ initial, onSave, onClose, saving, onPre
           <FormField label="Department">
             <select className={styles.selectInput} value={form.department} onChange={e => setField('department', e.target.value)}>
               <option value="">All Departments</option>
-              {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              {DEPARTMENTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
             </select>
           </FormField>
           <FormField label="Category">
@@ -202,10 +202,10 @@ export default function NewsReportForm({ initial, onSave, onClose, saving, onPre
 
       <div className={styles.formButtons}>
         <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
-        <Button variant="secondary" icon={Save} loading={saving === 'draft'} disabled={!canSubmit} onClick={() => onSave({ ...form, status: 'Draft' })}>
+        <Button variant="secondary" icon={Save} loading={saving === 'draft'} disabled={!canSubmit} onClick={() => onSave({ ...form, status: 'Draft', submittedBy: (user?._id || user?.id) })}>
           Save Draft
         </Button>
-        <Button icon={Send} loading={saving === 'publish'} disabled={!canSubmit} onClick={() => onSave({ ...form, status: 'Published' })}>
+        <Button icon={Send} loading={saving === 'publish'} disabled={!canSubmit} onClick={() => onSave({ ...form, status: 'Published', submittedBy: (user?._id || user?.id) })}>
           Publish
         </Button>
       </div>

@@ -15,17 +15,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
 
-  const doLogin = (role) => {
-    const quickCreds = {
-      faculty: { email: 'surya@mits.edu', password: 'Surya@123' },
-      hod:     { email: 'padma@mits.edu', password: 'Surya@123' },
-      admin:   { email: 'admin@mits.edu', password: 'Surya@123' },
-    };
-    const c = quickCreds[role];
-    setEmail(c.email);
-    setPassword(c.password);
+  const selectRole = (role) => {
     setSelectedRole(role);
-    handleApiLogin(c.email, c.password);
+    setEmail('');
+    setPassword('');
+    setError('');
   };
 
   const mockUsers = [
@@ -48,14 +42,41 @@ export default function Login() {
     setLoading(true);
     // Try real backend first, fall back to local mock if network fails or backend unreachable
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      // Determine role from selectedRole or scan the email intelligently
+      let role = selectedRole || 'faculty';
+      const emailLower = loginEmail.toLowerCase();
+      if (emailLower.includes('admin')) {
+        role = 'admin';
+      } else if (
+        emailLower.includes('hod') || 
+        emailLower.includes('padma') || 
+        emailLower.includes('kalpana') || 
+        emailLower.includes('persis') || 
+        emailLower.includes('vijay') || 
+        emailLower.includes('manavaal') || 
+        emailLower.includes('rajasek') || 
+        emailLower.includes('baskar')
+      ) {
+        role = 'hod';
+      }
+
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost/backend';
+      const res = await fetch(`${apiBase}/login.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ username: loginEmail.split('@')[0], password: loginPassword, role }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-      login(data);
+      if (!data.success) throw new Error(data.message || 'Login failed');
+      
+      // Ensure role is uppercase to match app expectations
+      const userData = {
+        ...data.user,
+        role: role.toUpperCase(),
+        name: data.user.faculty_name || data.user.username || 'User'
+      };
+      
+      login(userData, data.token);
       navigate('/dashboard');
     } catch (err) {
       // network error or server down -> use mock
@@ -102,7 +123,7 @@ export default function Login() {
             <div className={styles.roleButtons}>
               <button 
                 className={`${styles.roleBtn} ${selectedRole === 'faculty' ? styles.roleBtnActive : ''}`}
-                onClick={() => doLogin('faculty')}
+                onClick={() => selectRole('faculty')}
                 disabled={loading}
               >
                 <div className={styles.roleIcon}>
@@ -116,7 +137,7 @@ export default function Login() {
 
               <button 
                 className={`${styles.roleBtn} ${selectedRole === 'hod' ? styles.roleBtnActive : ''}`}
-                onClick={() => doLogin('hod')}
+                onClick={() => selectRole('hod')}
                 disabled={loading}
               >
                 <div className={styles.roleIcon}>
@@ -130,7 +151,7 @@ export default function Login() {
 
               <button 
                 className={`${styles.roleBtn} ${selectedRole === 'admin' ? styles.roleBtnActive : ''}`}
-                onClick={() => doLogin('admin')}
+                onClick={() => selectRole('admin')}
                 disabled={loading}
               >
                 <div className={styles.roleIcon}>
@@ -192,23 +213,7 @@ export default function Login() {
                 </button>
               </form>
 
-              <div className={styles.demoInfo}>
-                <div className={styles.demoLabel}>Test Credentials (AIML Dept)</div>
-                <div className={styles.demoList}>
-                  <div className={styles.demoItem}>
-                    <span className={styles.demoRole}>Faculty:</span>
-                    <span className={styles.demoCred}>surya@mits.edu / Surya@123</span>
-                  </div>
-                  <div className={styles.demoItem}>
-                    <span className={styles.demoRole}>Faculty:</span>
-                    <span className={styles.demoCred}>raghu@mits.edu / Surya@123</span>
-                  </div>
-                  <div className={styles.demoItem}>
-                    <span className={styles.demoRole}>HOD:</span>
-                    <span className={styles.demoCred}>padma@mits.edu / Surya@123</span>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>

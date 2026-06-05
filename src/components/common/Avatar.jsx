@@ -11,7 +11,8 @@ const GRADIENTS = [
 ];
 
 function gradient(name = '') {
-  const [c1, c2] = GRADIENTS[name.charCodeAt(0) % GRADIENTS.length];
+  const safeName = name || 'A';
+  const [c1, c2] = GRADIENTS[safeName.charCodeAt(0) % GRADIENTS.length];
   return `linear-gradient(135deg, ${c1}, ${c2})`;
 }
 

@@ -45,15 +45,9 @@ export default function PublicationsForm({ initial = {}, onSave, onClose, saving
 
   const handleSubmit = async (publish = false) => {
     if (!form.title) return toast('Title is required', 'warning');
-    try {
-      const payload = { ...form, status: publish ? 'Published' : 'Draft' };
-      if (initial._id || initial.id) await updatePublication(initial._id || initial.id, payload);
-      else await addPublication(payload);
-      clearDraft();
-      toast('Saved', 'success');
-      onSave && onSave(payload);
-      onClose && onClose();
-    } catch (e) { toast('Failed to save', 'error'); }
+    const payload = { ...form, status: publish ? 'Published' : 'Draft', submittedBy: (user?._id || user?.id) };
+    if (onSave) onSave(payload);
+    clearDraft();
   };
 
   return (

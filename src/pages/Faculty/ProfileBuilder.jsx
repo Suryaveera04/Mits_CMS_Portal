@@ -358,25 +358,31 @@ export default function ProfileBuilder() {
 
   const isHOD = user?.role === 'HOD';
 
-  const handleAvatarChange = (imgs) => {
+  const handleAvatarChange = async (imgs) => {
     setAvatarImages(imgs);
-    if (isHOD) {
-      updateUser({ avatar: imgs[0]?.url || null });
-    } else {
-      setPendingBasic(prev => ({ ...(prev || basicForm), avatar: imgs[0]?.url || null }));
+    const avatarUrl = imgs[0]?.url || null;
+    // Always update the user object in AuthContext so the avatar shows immediately
+    updateUser({ avatar: avatarUrl });
+    if (!isHOD) {
+      // For faculty, also stage it in pendingBasic so it's included in the approval snapshot
+      setPendingBasic(prev => ({ ...(prev || basicForm), avatar: avatarUrl }));
     }
   };
 
   const handleBasicSave = async () => {
+    const avatarUrl = avatarImages[0]?.url || user.avatar || '';
     if (isHOD) {
-      const updated = { ...basicForm, avatar: avatarImages[0]?.url || user.avatar || null };
+      const updated = { ...basicForm, avatar: avatarUrl };
       updateUser(updated);
       try {
         await facultyAPI.update(user._id || user.id, updated);
-      } catch (e) { console.error('HOD basic save error:', e.message); }
-      toast('Profile info saved', 'success');
+        toast('Profile info saved', 'success');
+      } catch (e) { 
+        console.error('HOD basic save error:', e.message); 
+        toast('Error saving profile', 'error');
+      }
     } else {
-      setPendingBasic({ ...basicForm, avatar: avatarImages[0]?.url || user.avatar || null });
+      setPendingBasic({ ...basicForm, avatar: avatarUrl });
       toast('Basic info staged — submit for approval to apply', 'info');
     }
     setEditingBasic(false);
@@ -418,8 +424,17 @@ export default function ProfileBuilder() {
       return;
     }
     setSubmitting(true);
+    
+    const basicInfoToSubmit = pendingBasic || {
+      name: user.name,
+      designation: user.designation,
+      email: user.email,
+      qualification: user.qualification,
+      avatar: avatarImages[0]?.url || user.avatar || ''
+    };
+    
     setTimeout(() => {
-      submitProfileForApproval(changeDescription, pendingBasic);
+      submitProfileForApproval(changeDescription, basicInfoToSubmit);
       setSubmitted(true);
       setChangeDescription('');
       setShowSubmitModal(false);
@@ -437,7 +452,14 @@ export default function ProfileBuilder() {
         <div className={styles.heroBanner} />
         <div className={styles.heroBody}>
         <div className={styles.avatarWrapper}>
-          <ImageUploader images={avatarImages} onChange={handleAvatarChange} circular multiple={false} size={148} />
+          <ImageUploader
+            images={avatarImages}
+            onChange={handleAvatarChange}
+            circular
+            multiple={false}
+            facultyId={user?._id || user?.id}
+            userRole={user?.role}
+          />
         </div>
         <div className={styles.profileInfo}>
           {editingBasic ? (
@@ -788,11 +810,18 @@ export default function ProfileBuilder() {
             {isHOD ? (
               <button className={styles.btnSaveChanges} onClick={async () => {
                 const uid = user?._id || user?.id;
-                if (pendingBasic) {
-                  updateUser(pendingBasic);
-                  try { await facultyAPI.update(uid, pendingBasic); } catch (e) { console.error(e.message); }
-                }
-                try { await profileAPI.save(uid, { ...profileSections, status: 'Approved' }); } catch (e) { console.error(e.message); }
+                const basicToSave = pendingBasic || {
+                  name: user.name,
+                  designation: user.designation,
+                  email: user.email,
+                  qualification: user.qualification,
+                  avatar: avatarImages[0]?.url || user.avatar || ''
+                };
+                updateUser(basicToSave);
+                try { 
+                  await facultyAPI.update(uid, basicToSave); 
+                  await profileAPI.save(uid, { ...profileSections, status: 'Approved', basicInfo: basicToSave }, 'HOD'); 
+                } catch (e) { console.error(e.message); }
                 setPendingBasic(null);
                 setSubmitted(true);
                 toast('Profile saved successfully', 'success');

@@ -366,9 +366,37 @@ function TrendingPreview({ item }) {
   );
 }
 
+function GenericPreview({ item }) {
+  const ignoredKeys = ['id', '_id', 'type', 'status', 'department', 'createdAt', 'updatedAt'];
+  return (
+    <>
+      <h1 className={styles.viewTitle}>{item.title || item.programTitle || item.name || item.studentName || 'Details'}</h1>
+      <div className={styles.viewMeta}>
+        {item.date && <span><Calendar size={13} /> {item.date}</span>}
+        {item.department && <span><Building size={13} /> {item.department}</span>}
+      </div>
+      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {Object.entries(item).map(([key, val]) => {
+          if (ignoredKeys.includes(key) || !val) return null;
+          if (typeof val === 'object' && !Array.isArray(val)) return null;
+          const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          return (
+            <div key={key} style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{displayKey}</span>
+              <span style={{ fontSize: '14px', color: '#334155', wordBreak: 'break-word' }}>
+                {Array.isArray(val) ? val.join(', ') : String(val)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function ViewModal({ item, onClose, onEdit }) {
   if (!item) return null;
-  const tabKey = { Event: 'Events', MoU: 'MoUs', News: 'News', Trending: 'Trending' }[item.type];
+  const tabKey = { Event: 'Events', MoU: 'MoUs', News: 'News', Trending: 'Trending' }[item.type] || 'Events';
   const meta = TAB_META[tabKey] || TAB_META.Events;
 
   return (
@@ -376,8 +404,8 @@ function ViewModal({ item, onClose, onEdit }) {
       <div className={styles.viewModal}>
         <div className={styles.viewHeader}>
           <div className={styles.viewHeaderLeft}>
-            <span className={styles.viewTypePill} style={{ background: meta.bg, color: meta.color }}>
-              <meta.icon size={12} /> {item.type}
+            <span className={styles.viewTypePill} style={{ background: meta.bg || '#f1f5f9', color: meta.color || '#475569' }}>
+               {item.type}
             </span>
             <StatusPill status={item.status} />
           </div>
@@ -389,10 +417,11 @@ function ViewModal({ item, onClose, onEdit }) {
           </div>
         </div>
         <div className={styles.viewBody}>
-          {item.type === 'Event'    && <EventPreview    item={item} />}
-          {item.type === 'MoU'      && <MoUPreview      item={item} />}
-          {item.type === 'News'     && <NewsPreview      item={item} />}
-          {item.type === 'Trending' && <TrendingPreview  item={item} />}
+          {item.type === 'Event'    ? <EventPreview    item={item} /> :
+           item.type === 'MoU'      ? <MoUPreview      item={item} /> :
+           item.type === 'News'     ? <NewsPreview     item={item} /> :
+           item.type === 'Trending' ? <TrendingPreview item={item} /> :
+           <GenericPreview item={item} />}
         </div>
       </div>
     </div>
@@ -487,6 +516,7 @@ export default function ContentStudio() {
   const { user } = useAuth();
   const {
     events, deleteEvent,
+    deleteMou, deleteNews,
     trending, deleteTrending,
     achievements, deleteAchievement,
     patents, deletePatent,
@@ -545,18 +575,23 @@ export default function ContentStudio() {
                 item.organization?.toLowerCase().includes(search.toLowerCase()))
   ), [allItems, statusFilter, deptFilter, search]);
 
-  const tabCounts = useMemo(() => ({
-    Events:       events.filter(e => e.type === 'Event').length,
-    MoUs:         events.filter(e => e.type === 'MoU').length,
-    News:         events.filter(e => e.type === 'News').length,
-    Trending:     trending.length,
-    Achievements: achievements.length,
-    Patents:      patents.length,
-    Publications: publications.length,
-    Placements:   placements.length,
-    Projects:     projects.length,
-    Subjects:     subjects.length,
-  }), [events, trending, achievements, patents, publications, placements, projects, subjects]);
+  const tabCounts = useMemo(() => {
+    const myDept = user?.department;
+    const filterDept = (arr, deptKey = 'department') =>
+      isAdmin ? arr : arr.filter(i => i[deptKey] === myDept);
+    return {
+      Events:       filterDept(events).filter(e => e.type === 'Event').length,
+      MoUs:         filterDept(events).filter(e => e.type === 'MoU').length,
+      News:         filterDept(events).filter(e => e.type === 'News').length,
+      Trending:     filterDept(trending).length,
+      Achievements: filterDept(achievements).length,
+      Patents:      filterDept(patents).length,
+      Publications: filterDept(publications).length,
+      Placements:   filterDept(placements).length,
+      Projects:     filterDept(projects).length,
+      Subjects:     filterDept(subjects).length,
+    };
+  }, [events, trending, achievements, patents, publications, placements, projects, subjects, isAdmin, user?.department]);
 
   const handleEdit = (item) => {
     const type = item.type;
@@ -573,7 +608,9 @@ export default function ContentStudio() {
     const id = deleteTarget._id || deleteTarget.id;
     switch (activeTab) {
       case 'Trending': deleteTrending(id); break;
-      case 'Events': case 'MoUs': case 'News': deleteEvent(id); break;
+      case 'Events': deleteEvent(id); break;
+      case 'MoUs': deleteMou(id); break;
+      case 'News': deleteNews(id); break;
       case 'Achievements': deleteAchievement(id); break;
       case 'Patents': deletePatent(id); break;
       case 'Publications': deletePublication(id); break;

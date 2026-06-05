@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: mits-cms-backend
+    env: php
+    plan: free
+    buildCommand: ""
+    startCommand: "php -S 0.0.0.0:$PORT -t backend"
+    envVars:
+      - key: DB_HOST
+        value: your-db-host
+      - key: DB_NAME
+        value: mits_cms
+      - key: DB_USER
+        value: your-db-user
+      - key: DB_PASSWORD
+        value: your-db-password
+      - key: FRONTEND_ORIGINS
+        value: https://your-netlify-app.netlify.app,http://localhost:5173

@@ -413,7 +413,7 @@ export default function FacultyDashboard() {
         <TableSection title="Outreach Activities" icon={Activity} color="#0D9488" columns={OUTREACH_COLS} entries={displayProfile.outreachActivities} />
         <TextSection title="Other Information" icon={Info} color="#6366F1" value={displayProfile.otherInfo} />
       </div>
-
+      
     </div>
   );
 }

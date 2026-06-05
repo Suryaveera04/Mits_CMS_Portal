@@ -1,11 +1,12 @@
 // src/pages/Admin/ContentTrendingForm.jsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAuth } from '../../context/useAuth';
 import { Button, FormField, Input } from '../../components/common/UI';
 import ImageUploader from '../../components/common/ImageUploader';
 import { Save, Send, Play } from 'lucide-react';
 import styles from './ContentTrendingForm.module.css';
 
-export default function ContentTrendingForm({ initial, onSave, onClose, saving, onPreviewChange }) {
+export default function ContentTrendingForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
     title: '',
     reelUrl: '',
@@ -16,10 +17,6 @@ export default function ContentTrendingForm({ initial, onSave, onClose, saving, 
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const canSubmit = form.title?.trim() && form.reelUrl?.trim();
-
-  useEffect(() => {
-    onPreviewChange?.({ ...form, type: 'Trending' });
-  }, [form, onPreviewChange]);
 
   return (
     <div className={styles.root}>
@@ -89,7 +86,7 @@ export default function ContentTrendingForm({ initial, onSave, onClose, saving, 
           icon={Save}
           loading={saving === 'draft'}
           disabled={!!saving || !form.title?.trim()}
-          onClick={() => onSave({ ...form, status: 'Draft' })}
+          onClick={() => onSave({ ...form, status: 'Draft', submittedBy: (user?._id || user?.id) })}
         >
           Save Draft
         </Button>
@@ -97,7 +94,7 @@ export default function ContentTrendingForm({ initial, onSave, onClose, saving, 
           icon={Send}
           loading={saving === 'publish'}
           disabled={!!saving || !canSubmit}
-          onClick={() => onSave({ ...form, status: 'Published' })}
+          onClick={() => onSave({ ...form, status: 'Published', submittedBy: (user?._id || user?.id) })}
         >
           Submit
         </Button>

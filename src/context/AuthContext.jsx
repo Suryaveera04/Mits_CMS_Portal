@@ -15,14 +15,20 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = (userData, token) => {
+    // Ensure avatar is preserved (login.php returns it from SELECT *)
+    const user = { ...userData, avatar: userData.avatar ?? null };
+    setUser(user);
+    localStorage.setItem('user', JSON.stringify(user));
+    if (token) {
+      localStorage.setItem('token', token);
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const updateUser = (userData) => {

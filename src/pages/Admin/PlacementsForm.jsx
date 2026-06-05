@@ -94,17 +94,9 @@ export default function PlacementsForm({ initial = {}, onSave, onClose, saving, 
 
   const handleSubmit = async (publish = false) => {
     if (!canSubmit) return toast('Please fill required fields', 'warning');
-    try {
-      const payload = { ...form, subtype: subTab, status: publish ? 'Published' : 'Draft', department: user?.department };
-      if (initial._id || initial.id) await updatePlacement(initial._id || initial.id, payload);
-      else await addPlacement(payload);
-      clearDraft();
-      toast(initial._id ? 'Updated successfully' : 'Saved successfully', 'success');
-      onSave && onSave(payload);
-      onClose && onClose();
-    } catch (e) {
-      toast('Failed to save', 'error');
-    }
+    const payload = { ...form, subtype: subTab, status: publish ? 'Published' : 'Draft', department: user?.department, submittedBy: (user?._id || user?.id) };
+    if (onSave) onSave(payload);
+    clearDraft();
   };
 
   const subTabStyle = (tab) => ({

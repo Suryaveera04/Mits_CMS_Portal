@@ -42,18 +42,10 @@ export default function AchievementsForm({ initial = {}, onSave, onClose, saving
   }, [form, onPreviewChange]);
 
   const handleSubmit = async (publish = false) => {
-    if (!form.title || !form.pdf) return toast('Title and supporting PDF are required', 'warning');
-    const payload = { ...form, status: publish ? 'Published' : 'Draft' };
-    try {
-      if (initial._id || initial.id) await updateAchievement(initial._id || initial.id, payload);
-      else await addAchievement(payload);
-      clearDraft();
-      toast('Saved successfully', 'success');
-      if (onSave) onSave(payload);
-      if (onClose) onClose();
-    } catch (e) {
-      toast('Failed to save', 'error');
-    }
+    if (!form.title || (!form.pdf && !initial.pdf)) return toast('Title and supporting PDF are required', 'warning');
+    const payload = { ...form, status: publish ? 'Published' : 'Draft', submittedBy: (user?._id || user?.id) };
+    if (onSave) onSave(payload);
+    clearDraft();
   };
 
   return (

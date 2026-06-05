@@ -1,158 +1,487 @@
-// src/services/api.js
-// Central API layer — all calls to the Express/MongoDB backend go through here.
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/backend';
 
-const BASE = 'http://localhost:5000/api';
-
-async function request(method, path, body) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
+const originalFetch = window.fetch;
+const fetch = async (url, options = {}) => {
+  const token = localStorage.getItem('token');
+  const headers = {
+    ...(options.headers || {})
   };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(`${BASE}${path}`, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return originalFetch(url, { ...options, headers });
+};
+
+export const loginUser = async (username, password, role) => {
+  try {
+    const response = await fetch(`${API_URL}/login.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+    return await response.json();
+  } catch (error) {
+    return { success: false, message: 'Connection error' };
+  }
+};
+
+// Mock API functions (replace with real backend later)
+export const facultyAPI = {
+  getAll: async () => [],
+  create: async (data) => ({ _id: Date.now(), ...data }),
+  update: async (id, data) => {
+    const { avatar, ...rest } = data;
+    const response = await fetch(`${API_URL}/update_user.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, avatar: avatar || '', ...rest })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { _id: id, ...data };
+  },
+  remove: async (id) => ({ success: true })
+};
+
+export const profileAPI = {
+  get: async (userId) => {
+    const response = await fetch(`${API_URL}/get_profile.php?faculty_id=${userId}`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.profile;
+  },
+  save: async (userId, profileData, userRole = 'FACULTY') => {
+    const { basicInfo, ...sections } = profileData;
+    const response = await fetch(`${API_URL}/save_profile.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        faculty_id: userId,
+        user_role: userRole,
+        profile_data: sections,
+        basic_info: basicInfo || {}
+      })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { success: true };
+  }
+};
+
+export const submissionsAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/get_submissions.php`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.submissions;
+  },
+  create: async (data) => {
+    const { updatedProfile, pendingBasicInfo, ...rest } = data;
+    const response = await fetch(`${API_URL}/create_submission.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...rest,
+        profileData: updatedProfile || {},
+        basicInfo: pendingBasicInfo || {}
+      })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return result.submission;
+  },
+  setStatus: async (id, status, comment, reviewedBy) => {
+    const response = await fetch(`${API_URL}/update_submission.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status, comment, reviewedBy })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return result.submission;
+  },
+  supersede: async (id) => ({ success: true })
+};
+
+async function deleteContent(id, type) {
+  const response = await fetch(`${API_URL}/delete_content.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, type })
+  });
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message || 'Delete failed');
+  return result;
 }
 
-const get   = (path)       => request('GET',    path);
-const post  = (path, body) => request('POST',   path, body);
-const put   = (path, body) => request('PUT',    path, body);
-const patch = (path, body) => request('PATCH',  path, body);
-const del   = (path, body) => request('DELETE', path, body);
-
-// ── Faculty ──────────────────────────────────────────────────────────────────
-export const facultyAPI = {
-  getAll:  ()         => get('/faculty'),
-  getOne:  (id)       => get(`/faculty/${id}`),
-  create:  (data)     => post('/faculty', data),
-  update:  (id, data) => put(`/faculty/${id}`, data),
-  remove:  (id)       => del(`/faculty/${id}`),
-};
-
-// ── Profile ──────────────────────────────────────────────────────────────────
-export const profileAPI = {
-  get:          (facultyId)         => get(`/profile/${facultyId}`),
-  save:         (facultyId, data)   => post(`/profile/${facultyId}`, data),
-  patch:        (facultyId, data)   => patch(`/profile/${facultyId}`, data),
-  updateStatus: (facultyId, status) => patch(`/profile/${facultyId}/status`, { status }),
-};
-
-// ── Submissions ──────────────────────────────────────────────────────────────
-export const submissionsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/submissions${qs ? '?' + qs : ''}`);
-  },
-  getOne:    (id)                              => get(`/submissions/${id}`),
-  create:    (data)                            => post('/submissions', data),
-  setStatus: (id, status, comment, reviewedBy) =>
-    patch(`/submissions/${id}/status`, { status, comment, reviewedBy }),
-  supersede: (id)  => patch(`/submissions/${id}/supersede`, {}),
-  remove:    (id)  => del(`/submissions/${id}`),
-};
-
-// ── Events / MoUs / News ─────────────────────────────────────────────────────
 export const eventsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/events${qs ? '?' + qs : ''}`);
+  getAll: async (dept, status) => {
+    const params = new URLSearchParams();
+    if (dept)   params.append('department', dept);
+    if (status) params.append('status', status);
+    const response = await fetch(`${API_URL}/get_events.php?${params}`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.events;
   },
-  getOne:  (id)       => get(`/events/${id}`),
-  create:  (data)     => post('/events', data),
-  update:  (id, data) => put(`/events/${id}`, data),
-  remove:  (id)       => del(`/events/${id}`),
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_event.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_event.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => deleteContent(id, 'event')
 };
 
-// ── Trending ─────────────────────────────────────────────────────────────────
+export const mousAPI = {
+  getAll: async (dept, status) => {
+    const params = new URLSearchParams();
+    if (dept)   params.append('department', dept);
+    if (status) params.append('approvalStatus', status);
+    const response = await fetch(`${API_URL}/get_mous.php?${params}`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.mous;
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_mou.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_mou.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => deleteContent(id, 'mou')
+};
+
+export const newsAPI = {
+  getAll: async (dept, status) => {
+    const params = new URLSearchParams();
+    if (dept)   params.append('department', dept);
+    if (status) params.append('status', status);
+    const response = await fetch(`${API_URL}/get_news.php?${params}`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.news;
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_news.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_news.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => deleteContent(id, 'news')
+};
+
 export const trendingAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/trending${qs ? '?' + qs : ''}`);
+  getAll: async (status) => {
+    const params = status ? `?status=${status}` : '';
+    const response = await fetch(`${API_URL}/get_trending.php${params}`);
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.trending;
   },
-  getOne:  (id)       => get(`/trending/${id}`),
-  create:  (data)     => post('/trending', data),
-  update:  (id, data) => put(`/trending/${id}`, data),
-  remove:  (id)       => del(`/trending/${id}`),
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_trending.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_trending.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => deleteContent(id, 'trending')
 };
 
-// ── Achievements ───────────────────────────────────────────────────────────
-export const achievementsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/achievements${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/achievements/${id}`),
-  create:  (data)     => post('/achievements', data),
-  update:  (id, data) => put(`/achievements/${id}`, data),
-  remove:  (id)       => del(`/achievements/${id}`),
-};
-
-// ── Patents ───────────────────────────────────────────────────────────────
-export const patentsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/patents${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/patents/${id}`),
-  create:  (data)     => post('/patents', data),
-  update:  (id, data) => put(`/patents/${id}`, data),
-  remove:  (id)       => del(`/patents/${id}`),
-};
-
-// ── Publications ──────────────────────────────────────────────────────────
-export const publicationsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/publications${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/publications/${id}`),
-  create:  (data)     => post('/publications', data),
-  update:  (id, data) => put(`/publications/${id}`, data),
-  remove:  (id)       => del(`/publications/${id}`),
-};
-
-// ── Placements & Training ─────────────────────────────────────────────────
-export const placementsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/placements${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/placements/${id}`),
-  create:  (data)     => post('/placements', data),
-  update:  (id, data) => put(`/placements/${id}`, data),
-  remove:  (id)       => del(`/placements/${id}`),
-};
-
-// ── Student Projects ─────────────────────────────────────────────────────
-export const projectsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/projects${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/projects/${id}`),
-  create:  (data)     => post('/projects', data),
-  update:  (id, data) => put(`/projects/${id}`, data),
-  remove:  (id)       => del(`/projects/${id}`),
-};
-
-// ── Subjects / Curriculum ─────────────────────────────────────────────────
-export const subjectsAPI = {
-  getAll: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return get(`/subjects${qs ? '?' + qs : ''}`);
-  },
-  getOne:  (id)       => get(`/subjects/${id}`),
-  create:  (data)     => post('/subjects', data),
-  update:  (id, data) => put(`/subjects/${id}`, data),
-  remove:  (id)       => del(`/subjects/${id}`),
-};
-
-// ── Notifications ─────────────────────────────────────────────────────────────
 export const notificationsAPI = {
-  getAll:   (userId) => get(`/notifications?userId=${userId}`),
-  create:   (data)   => post('/notifications', data),
-  markOne:  (id)     => patch(`/notifications/${id}/read`, {}),
-  markAll:  (userId) => patch('/notifications/mark-all-read', { userId }),
-  clearAll: (userId) => del('/notifications/clear', { userId }),
+  getAll: async (userId) => [],
+  create: async (data) => ({ _id: Date.now(), ...data }),
+  markAll: async (userId) => ({ success: true }),
+  markOne: async (id) => ({ success: true }),
+  clearAll: async (userId) => ({ success: true })
+};
+
+export const achievementsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_achievements.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.achievements;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_achievement.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_achievement.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'achievement' })
+    });
+    return await response.json();
+  }
+};
+
+export const patentsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_patents.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.patents;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_patent.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_patent.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'patent' })
+    });
+    return await response.json();
+  }
+};
+
+export const publicationsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_publications.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.publications;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_publication.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_publication.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'publication' })
+    });
+    return await response.json();
+  }
+};
+
+export const placementsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_placements.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.placements;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_placement.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_placement.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'placement' })
+    });
+    return await response.json();
+  }
+};
+
+export const projectsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_projects.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.projects;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_project.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_project.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'project' })
+    });
+    return await response.json();
+  }
+};
+
+export const subjectsAPI = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_URL}/get_subjects.php`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      return data.subjects;
+    } catch { return []; }
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/save_subject.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: result.id, id: result.id };
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/save_subject.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, id })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return { ...data, _id: id, id };
+  },
+  remove: async (id) => {
+    const response = await fetch(`${API_URL}/delete_content.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type: 'subject' })
+    });
+    return await response.json();
+  }
 };

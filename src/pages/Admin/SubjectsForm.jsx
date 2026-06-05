@@ -43,15 +43,9 @@ export default function SubjectsForm({ initial = {}, onSave, onClose, saving, on
 
   const handleSubmit = async (publish = false) => {
     if (!form.code || !form.name) return toast('Subject code and name are required', 'warning');
-    try {
-      const payload = { ...form, status: publish ? 'Published' : 'Draft' };
-      if (initial._id || initial.id) await updateSubject(initial._id || initial.id, payload);
-      else await addSubject(payload);
-      clearDraft();
-      toast('Saved', 'success');
-      onSave && onSave(payload);
-      onClose && onClose();
-    } catch (e) { toast('Failed to save', 'error'); }
+    const payload = { ...form, status: publish ? 'Published' : 'Draft', submittedBy: (user?._id || user?.id) };
+    if (onSave) onSave(payload);
+    clearDraft();
   };
 
   return (

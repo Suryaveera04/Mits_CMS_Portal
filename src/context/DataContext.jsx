@@ -5,6 +5,7 @@ import {
   eventsAPI, trendingAPI, notificationsAPI,
   achievementsAPI, patentsAPI, publicationsAPI,
   placementsAPI, projectsAPI, subjectsAPI,
+  mousAPI, newsAPI,
 } from '../services/api';
 import { useAuth } from './useAuth';
 
@@ -85,7 +86,7 @@ const EMPTY_PROFILE = {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 export function DataProvider({ children }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const userId = user?._id || user?.id || null;
 
   const [faculty,        setFaculty]        = useState([]);
@@ -125,10 +126,12 @@ export function DataProvider({ children }) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [fac, subs, evs, trnd, achs, pats, pubs, plas, projs, subsjs] = await Promise.all([
+        const [fac, subs, evs, mousList, newsList, trnd, achs, pats, pubs, plas, projs, subsjs] = await Promise.all([
           facultyAPI.getAll(),
           submissionsAPI.getAll(),
           eventsAPI.getAll(),
+          mousAPI.getAll(),
+          newsAPI.getAll(),
           trendingAPI.getAll(),
           achievementsAPI.getAll(),
           patentsAPI.getAll(),
@@ -139,7 +142,7 @@ export function DataProvider({ children }) {
         ]);
         setFaculty(fac);
         setSubmissions(subs);
-        setEvents(evs);
+        setEvents([...evs, ...mousList, ...newsList]);
         setTrending(trnd);
         setAchievements(achs);
         setPatents(pats);
@@ -148,13 +151,23 @@ export function DataProvider({ children }) {
         setProjects(projs);
         setSubjects(subsjs);
 
-        // Load profile for current user
+        // Load profile for current user (faculty and HOD)
         try {
           const prof = await profileAPI.get(userId);
           setProfileSections(prof);
           setProfileStatus(prof.status || 'Draft');
-          // Only set approvedProfile if it's actually approved
           if (prof.status === 'Approved') setApprovedProfile(prof);
+
+          // Always sync avatar + name from DB into AuthContext on load
+          if (prof._basic_info) {
+            updateUser({
+              name:          prof._basic_info.name,
+              designation:   prof._basic_info.designation,
+              email:         prof._basic_info.email,
+              qualification: prof._basic_info.qualification,
+              avatar:        prof._basic_info.avatar,
+            });
+          }
         } catch {
           // No profile yet — keep empty shape
         }
@@ -228,41 +241,67 @@ export function DataProvider({ children }) {
   }, [addNotification]);
 
   const updateSubmissionStatus = useCallback(async (id, status, comment = '', reviewedBy = '') => {
-    const updated = await submissionsAPI.setStatus(id, status, comment, reviewedBy);
-    setSubmissions((prev) => prev.map((s) => (s._id === id || s.id === id) ? updated : s));
+    try {
+      const updated = await submissionsAPI.setStatus(id, status, comment, reviewedBy);
+      setSubmissions((prev) => prev.map((s) => (s._id === id || s.id === id) ? updated : s));
 
-    // Reflect profile status change locally
-    if (status === 'Approved' && updated.updatedProfile) {
-      setProfileSections(updated.updatedProfile);
-      setApprovedProfile(updated.updatedProfile);
-      setProfileStatus('Approved');
-    }
-    if (status === 'Rejected') setProfileStatus('Draft');
-
-    // Reflect content data changes locally
-    if (status === 'Approved' && updated.contentData) {
-      const d = updated.contentData;
-      if (updated.type === 'Trending') {
-        setTrending((prev) =>
-          d._id
-            ? prev.map((t) => t._id === d._id ? { ...t, ...d, status: 'Published' } : t)
-            : [{ ...d, status: 'Published' }, ...prev]
-        );
-      } else if (['Event', 'MoU', 'News'].includes(updated.type)) {
-        setEvents((prev) =>
-          d._id
-            ? prev.map((e) => e._id === d._id ? { ...e, ...d, status: 'Approved' } : e)
-            : [{ ...d, status: 'Approved' }, ...prev]
-        );
+      // If profile submission was approved, reload the profile from database
+      if (status === 'Approved' && updated.type === 'Profile') {
+        const facultyId = updated.userId || updated.user_id;
+        if (facultyId) {
+          try {
+            const freshProfile = await profileAPI.get(facultyId);
+            setProfileSections(freshProfile);
+            setApprovedProfile(freshProfile);
+            setProfileStatus('Approved');
+            // Refresh avatar + name in the UI from the now-approved faculty_login row
+            if (freshProfile._basic_info) {
+              updateUser({
+                name:          freshProfile._basic_info.name,
+                designation:   freshProfile._basic_info.designation,
+                email:         freshProfile._basic_info.email,
+                qualification: freshProfile._basic_info.qualification,
+                avatar:        freshProfile._basic_info.avatar,
+              });
+            }
+          } catch (e) {
+            console.error('Failed to reload profile after approval:', e.message);
+          }
+        }
       }
-    }
+      
+      if (status === 'Rejected' && updated.type === 'Profile') {
+        setProfileStatus('Rejected');
+      }
 
-    const sub = submissions.find((s) => (s._id || s.id) === id);
-    if (sub) {
-      addNotification({
-        message: `"${sub.title}" was ${status.toLowerCase()}`,
-        type: status === 'Approved' ? 'success' : status === 'Rejected' ? 'error' : 'warning',
-      });
+      // Reflect content data changes locally
+      if (status === 'Approved' && updated.contentData) {
+        const d = updated.contentData;
+        if (updated.type === 'Trending') {
+          setTrending((prev) =>
+            d._id
+              ? prev.map((t) => t._id === d._id ? { ...t, ...d, status: 'Published' } : t)
+              : [{ ...d, status: 'Published' }, ...prev]
+          );
+        } else if (['Event', 'MoU', 'News'].includes(updated.type)) {
+          setEvents((prev) =>
+            d._id
+              ? prev.map((e) => e._id === d._id ? { ...e, ...d, status: 'Approved' } : e)
+              : [{ ...d, status: 'Approved' }, ...prev]
+          );
+        }
+      }
+
+      const sub = submissions.find((s) => (s._id || s.id) === id);
+      if (sub) {
+        addNotification({
+          message: `"${sub.title}" was ${status.toLowerCase()}`,
+          type: status === 'Approved' ? 'success' : status === 'Rejected' ? 'error' : 'warning',
+        });
+      }
+    } catch (e) {
+      console.error('updateSubmissionStatus error:', e.message);
+      throw e;
     }
   }, [submissions, addNotification]);
 
@@ -298,7 +337,7 @@ export function DataProvider({ children }) {
     if (!userId) return;
     try {
       const status = user?.role === 'HOD' ? 'Approved' : 'Draft';
-      await profileAPI.save(userId, { ...profileSections, status });
+      await profileAPI.save(userId, { ...profileSections, status }, user?.role);
       setLastSubmittedProfile(JSON.parse(JSON.stringify(profileSections)));
       addNotification({ message: 'Your profile draft has been saved', type: 'info' });
     } catch (e) {
@@ -316,7 +355,12 @@ export function DataProvider({ children }) {
     if (alreadyPending) return;
 
     try {
-      await profileAPI.save(userId, { ...profileSections, status: 'Pending' });
+      // Save to temp table — include basicInfo so avatar is captured in snapshot
+      await profileAPI.save(
+        userId,
+        { ...profileSections, status: 'Pending', basicInfo: pendingBasicInfo || {} },
+        user?.role
+      );
       setProfileStatus('Pending');
 
       const differences = calculateProfileDifferences(lastSubmittedProfile, profileSections);
@@ -390,6 +434,52 @@ export function DataProvider({ children }) {
       console.error('deleteEvent error:', e.message);
       throw e;
     }
+  }, []);
+
+  const addMou = useCallback(async (data) => {
+    try {
+      const created = await mousAPI.create(data);
+      setEvents((prev) => [{...created, type: 'MoU'}, ...prev]);
+      return created;
+    } catch (e) { throw e; }
+  }, []);
+
+  const updateMou = useCallback(async (id, data) => {
+    try {
+      const updated = await mousAPI.update(id, data);
+      setEvents((prev) => prev.map((e) => (e._id === id || e.id === id) ? {...updated, type: 'MoU'} : e));
+      return updated;
+    } catch (e) { throw e; }
+  }, []);
+
+  const deleteMou = useCallback(async (id) => {
+    try {
+      await mousAPI.remove(id);
+      setEvents((prev) => prev.filter((e) => e._id !== id && e.id !== id));
+    } catch (e) { throw e; }
+  }, []);
+
+  const addNews = useCallback(async (data) => {
+    try {
+      const created = await newsAPI.create(data);
+      setEvents((prev) => [{...created, type: 'News'}, ...prev]);
+      return created;
+    } catch (e) { throw e; }
+  }, []);
+
+  const updateNews = useCallback(async (id, data) => {
+    try {
+      const updated = await newsAPI.update(id, data);
+      setEvents((prev) => prev.map((e) => (e._id === id || e.id === id) ? {...updated, type: 'News'} : e));
+      return updated;
+    } catch (e) { throw e; }
+  }, []);
+
+  const deleteNews = useCallback(async (id) => {
+    try {
+      await newsAPI.remove(id);
+      setEvents((prev) => prev.filter((e) => e._id !== id && e.id !== id));
+    } catch (e) { throw e; }
   }, []);
 
   // ── TRENDING ───────────────────────────────────────────────────────────────
@@ -611,6 +701,8 @@ export function DataProvider({ children }) {
 
       // Events / MoUs / News
       addEvent, updateEvent, deleteEvent,
+      addMou, updateMou, deleteMou,
+      addNews, updateNews, deleteNews,
 
       // Trending
       addTrending, updateTrending, deleteTrending,

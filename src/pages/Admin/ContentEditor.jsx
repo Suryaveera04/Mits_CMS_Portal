@@ -364,7 +364,19 @@ function PreviewPanel({ type, data }) {
 
 export default function ContentEditor() {
   const { user } = useAuth();
-  const { events, trending, addEvent, updateEvent, addTrending, updateTrending } = useData();
+  const { 
+    events, trending, achievements, patents, publications, placements, projects, subjects,
+    addEvent, updateEvent, 
+    addMou, updateMou,
+    addNews, updateNews,
+    addTrending, updateTrending,
+    addAchievement, updateAchievement,
+    addPatent, updatePatent,
+    addPublication, updatePublication,
+    addPlacement, updatePlacement,
+    addProject, updateProject,
+    addSubject, updateSubject
+  } = useData();
   const navigate = useNavigate();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -376,19 +388,28 @@ export default function ContentEditor() {
   const [previewData, setPreviewData] = useState(null);
 
   // Find existing item if editing
-  const existing = itemId && type
-    ? (type === 'Trending'
-        ? trending.find(t => (t._id || t.id) === itemId)
-        : events.find(e => (e._id || e.id) === itemId))
-    : null;
+  const existing = useMemo(() => {
+    if (!itemId || !type) return null;
+    switch (type) {
+      case 'Trending': return trending.find(t => (t._id || t.id) === itemId);
+      case 'Event': case 'MoU': case 'News': return events.find(e => (e._id || e.id) === itemId);
+      case 'Achievement': return achievements.find(a => (a._id || a.id) === itemId);
+      case 'Patent': return patents.find(p => (p._id || p.id) === itemId);
+      case 'Publication': return publications.find(p => (p._id || p.id) === itemId);
+      case 'Placement': return placements.find(p => (p._id || p.id) === itemId);
+      case 'Project': return projects.find(p => (p._id || p.id) === itemId);
+      case 'Subject': return subjects.find(s => (s._id || s.id) === itemId);
+      default: return null;
+    }
+  }, [itemId, type, trending, events, achievements, patents, publications, placements, projects, subjects]);
 
-  const initial = existing
-    ? { ...existing }
-    : { type, status: 'Draft', department: user?.department };
+  const initial = useMemo(() => {
+    return existing ? { ...existing } : { type, status: 'Draft', department: user?.department };
+  }, [existing, type, user?.department]);
 
   useEffect(() => {
     setPreviewData(initial);
-  }, [type, itemId]);
+  }, [initial]);
 
   const handleSave = async (data) => {
     const isDraft = data.status === 'Draft';
@@ -400,13 +421,52 @@ export default function ContentEditor() {
 
       const saveData = { ...data, status: finalStatus, department: user?.department };
 
-      if (type === 'Trending') {
-        if (itemId) await updateTrending(itemId, saveData);
-        else        await addTrending(saveData);
-      } else {
-        if (itemId) await updateEvent(itemId, saveData);
-        else        await addEvent(saveData);
+      // Dispatch to the correct API based on type
+      switch (type) {
+        case 'Trending':
+          if (itemId) await updateTrending(itemId, saveData);
+          else await addTrending(saveData);
+          break;
+        case 'Achievement':
+          if (itemId) await updateAchievement(itemId, saveData);
+          else await addAchievement(saveData);
+          break;
+        case 'Patent':
+          if (itemId) await updatePatent(itemId, saveData);
+          else await addPatent(saveData);
+          break;
+        case 'Publication':
+          if (itemId) await updatePublication(itemId, saveData);
+          else await addPublication(saveData);
+          break;
+        case 'Placement':
+          if (itemId) await updatePlacement(itemId, saveData);
+          else await addPlacement(saveData);
+          break;
+        case 'Project':
+          if (itemId) await updateProject(itemId, saveData);
+          else await addProject(saveData);
+          break;
+        case 'Subject':
+          if (itemId) await updateSubject(itemId, saveData);
+          else await addSubject(saveData);
+          break;
+        case 'MoU':
+          if (itemId) await updateMou(itemId, saveData);
+          else await addMou(saveData);
+          break;
+        case 'News':
+          if (itemId) await updateNews(itemId, saveData);
+          else await addNews(saveData);
+          break;
+        case 'Event':
+          if (itemId) await updateEvent(itemId, saveData);
+          else await addEvent(saveData);
+          break;
+        default:
+          throw new Error('Unknown content type');
       }
+      
       toast(
         itemId
           ? `${TYPE_LABELS[type]} updated successfully`
@@ -422,6 +482,8 @@ export default function ContentEditor() {
   };
 
   const handleClose = () => navigate('/content');
+
+  const resolvedPreviewData = useMemo(() => ({ ...initial, ...previewData, type }), [initial, previewData, type]);
 
   // No type selected yet — show picker
   if (!type) {
@@ -442,8 +504,6 @@ export default function ContentEditor() {
   }
 
   const formProps = { initial, onSave: handleSave, onClose: handleClose, saving, onPreviewChange: setPreviewData };
-
-  const resolvedPreviewData = useMemo(() => ({ ...initial, ...previewData, type }), [initial, previewData, type]);
 
   return (
     <div className={styles.root}>
