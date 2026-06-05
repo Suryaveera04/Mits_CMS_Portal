@@ -25,6 +25,15 @@ This project now uses:
    - `FRONTEND_ORIGINS=https://your-netlify-app.netlify.app,http://localhost:5173`
 4. Make sure your MySQL database is reachable from Render.
 
+## Local development (your current setup)
+Use these values for the local PHPMyAdmin / MySQL server running on your machine:
+- `DB_HOST=localhost`
+- `DB_NAME=mits_cms`
+- `DB_USER=root`
+- `DB_PASSWORD=`
+- `VITE_API_BASE_URL=http://127.0.0.1:8000`
+- `VITE_ENABLE_MOCK_LOGIN=false`
+
 ## 3. Verify
 - Open the Netlify URL.
 - Log in and confirm the frontend reaches the Render backend.
