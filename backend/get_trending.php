@@ -27,7 +27,7 @@ try {
         $item['submittedByName'] = $item['submitted_by_name'];
         $item['department_id']   = isset($item['department_id']) ? (int)$item['department_id'] : null;
         // Cover image URL — served by get_content_image.php
-        $item['coverImage'] = "http://localhost/backend/get_content_image.php?table=trending&id={$item['id']}&field=cover_image";
+        $item['coverImage'] = BASE_URL . "/get_content_image.php?table=trending&id={$item['id']}&field=cover_image";
     }
 
     echo json_encode(['success' => true, 'trending' => $items]);

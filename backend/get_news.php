@@ -23,14 +23,14 @@ try {
         $item['tags'] = json_decode($item['tags'] ?? '[]', true);
 
         // Cover image URL (don't send binary in list)
-        $item['coverImage'] = "http://localhost/backend/get_content_image.php?table=news&id={$id}&field=cover_image";
+        $item['coverImage'] = BASE_URL . "/get_content_image.php?table=news&id={$id}&field=cover_image";
 
         // Gallery image URLs
         $s = $pdo->prepare("SELECT id FROM news_images WHERE news_id = ? ORDER BY sort_order");
         $s->execute([$id]);
         $item['gallery'] = array_map(fn($r) => [
             'id'  => 'ni' . $r['id'],
-            'url' => "http://localhost/backend/get_content_image.php?table=news_images&id={$r['id']}"
+            'url' => BASE_URL . "/get_content_image.php?table=news_images&id={$r['id']}"
         ], $s->fetchAll(PDO::FETCH_ASSOC));
 
         $item['_id']          = $item['id'];

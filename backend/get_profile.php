@@ -60,7 +60,7 @@ try {
         $profile['status'] = $faculty['profile_status'] ?? 'Draft';
         $role = $isHod ? 'hod' : 'faculty';
         $avatarUrl = !empty($faculty['avatar'])
-            ? "http://localhost/backend/get_avatar.php?id={$faculty_id}&role={$role}&t=" . time()
+            ? BASE_URL . "/get_avatar.php?id={$faculty_id}&role={$role}&t=" . time()
             : null;
         $profile['_basic_info'] = [
             'name'          => $faculty['display_name'],

@@ -1,32 +1,66 @@
 <?php
-$allowedOrigins = array_filter(array_map('trim', explode(',', getenv('FRONTEND_ORIGINS') ?: 'http://localhost:5173,http://127.0.0.1:5173')));
+
+define('BASE_URL', 'https://mits-cms.freedev.app/backend');
+
+// Allowed Frontend Origins (production only)
+$allowedOrigins = [
+    'https://mits-cms.netlify.app',
+    'https://mits-cms.freedev.app'
+];
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
-} else if (!empty($allowedOrigins)) {
-    header('Access-Control-Allow-Origin: ' . $allowedOrigins[0]);
+} else {
+    header('Access-Control-Allow-Origin: *');
 }
 
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Credentials: true');
 
-// Only set JSON content-type for API files, NOT for image-serving files
-// get_avatar.php does NOT include config.php — it sets its own headers
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Only set JSON content-type for API files
 if (!defined('SKIP_JSON_HEADER')) {
     header('Content-Type: application/json');
 }
 
-$host     = getenv('DB_HOST') ?: 'localhost';
-$dbname   = getenv('DB_NAME') ?: 'mits_cms';
-$username = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASSWORD') ?: '';
+/*
+|--------------------------------------------------------------------------
+| Database Configuration
+|--------------------------------------------------------------------------
+|
+| Replace the values below with your InfinityFree credentials.
+|
+*/
+
+$host     = 'sql205.infinityfree.com';
+$dbname   = 'if0_42135264_mits_cms';
+$username = 'if0_42135264';
+$password = 'Suryamsv04';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $username,
+        $password
+    );
+
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
 } catch (PDOException $e) {
-    die(json_encode(['success' => false, 'message' => 'Connection failed: ' . $e->getMessage()]));
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Connection failed: ' . $e->getMessage()
+    ]);
+
+    exit();
 }
 ?>

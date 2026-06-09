@@ -1,13 +1,12 @@
 <?php
+require_once 'config.php';
+
 // get_content_image.php — serves BLOB images from content tables
 // Usage examples:
 //   get_content_image.php?table=event_images&id=5
 //   get_content_image.php?table=news&id=3&field=cover_image
 //   get_content_image.php?table=trending&id=1&field=cover_image
 
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit(0); }
 
 $allowed = [
@@ -29,15 +28,6 @@ if (!isset($allowed[$table]) || $id <= 0) {
 
 $dataCol = $field ?? $allowed[$table]['data_col'];
 $mimeCol = $allowed[$table]['mime_col'];
-
-$host   = 'localhost';
-$dbname = 'mits_cms';
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", 'root', '');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    http_response_code(500); exit('DB error');
-}
 
 $stmt = $pdo->prepare("SELECT `$dataCol`, `$mimeCol` FROM `$table` WHERE id = ?");
 $stmt->execute([$id]);

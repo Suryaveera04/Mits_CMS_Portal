@@ -10,9 +10,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/backend': {
-        target: 'http://localhost',
+        target: 'https://mits-cms.freedev.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

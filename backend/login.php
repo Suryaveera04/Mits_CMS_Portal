@@ -55,7 +55,7 @@ $user['department_id'] = $user['department_id'] ?? null;
 $hasAvatar = !empty($user['avatar']);
 unset($user['avatar']);
 $user['avatar'] = $hasAvatar
-    ? "http://localhost/backend/get_avatar.php?id={$user['id']}&role={$role}&t=" . time()
+    ? BASE_URL . "/get_avatar.php?id={$user['id']}&role={$role}&t=" . time()
     : null;
 
 // Generate JWT token

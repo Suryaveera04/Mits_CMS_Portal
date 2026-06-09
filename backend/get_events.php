@@ -46,14 +46,14 @@ try {
         $s = $pdo->prepare("SELECT id FROM event_images WHERE event_id = ? AND image_type = 'poster' LIMIT 1");
         $s->execute([$id]);
         $row = $s->fetch(PDO::FETCH_ASSOC);
-        $ev['poster'] = $row ? "http://localhost/backend/get_content_image.php?table=event_images&id={$row['id']}" : null;
+        $ev['poster'] = $row ? BASE_URL . "/get_content_image.php?table=event_images&id={$row['id']}" : null;
 
         // Geo photos URLs
         $s = $pdo->prepare("SELECT id FROM event_images WHERE event_id = ? AND image_type = 'geo_photo'");
         $s->execute([$id]);
         $ev['geoPhotos'] = array_map(fn($r) => [
             'id'  => 'geo' . $r['id'],
-            'url' => "http://localhost/backend/get_content_image.php?table=event_images&id={$r['id']}"
+            'url' => BASE_URL . "/get_content_image.php?table=event_images&id={$r['id']}"
         ], $s->fetchAll(PDO::FETCH_ASSOC));
 
         // Camel-case key aliases for frontend

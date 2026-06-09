@@ -50,7 +50,7 @@ try {
     $stmt->execute();
 
     // Return the URL that serves this image back to the browser
-    $avatarUrl = "http://localhost/backend/get_avatar.php?id={$faculty_id}&role=" . strtolower($user_role);
+    $avatarUrl = BASE_URL . "/get_avatar.php?id={$faculty_id}&role=" . strtolower($user_role);
 
     echo json_encode(['success' => true, 'avatarUrl' => $avatarUrl]);
 

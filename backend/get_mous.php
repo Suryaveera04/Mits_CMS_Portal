@@ -34,7 +34,7 @@ try {
         $s->execute([$id]);
         $mou['signingImages'] = array_map(fn($r) => [
             'id'  => 'mou' . $r['id'],
-            'url' => "http://localhost/backend/get_content_image.php?table=mou_images&id={$r['id']}"
+            'url' => BASE_URL . "/get_content_image.php?table=mou_images&id={$r['id']}"
         ], $s->fetchAll(PDO::FETCH_ASSOC));
 
         // Camel-case aliases

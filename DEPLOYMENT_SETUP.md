@@ -1,44 +1,29 @@
-# Deployment Setup for Netlify + Render
+# Deployment Setup for Netlify + InfinityFree
 
-This project now uses:
-- Frontend: Vite + React, deploy to Netlify
-- Backend: PHP API scripts, deploy to Render
+This project is configured for:
+- Frontend: Vite + React deployed on Netlify
+- Backend: PHP API scripts deployed on InfinityFree at `https://mits-cms.freedev.app/backend`
 
 ## 1. Frontend (Netlify)
 1. Push this repository to GitHub.
-2. In Netlify, create a new site from the GitHub repo.
+2. Create a Netlify site from the repo.
 3. Build command: `npm run build`
 4. Publish directory: `dist`
-5. Set environment variables:
-   - `VITE_API_BASE_URL=https://your-render-backend-url.onrender.com`
+5. Set these environment variables:
+   - `VITE_API_BASE_URL=https://mits-cms.freedev.app/backend`
    - `VITE_ENABLE_MOCK_LOGIN=false`
 
-## 2. Backend (Render)
-1. Create a new Web Service on Render using this repo.
-2. Set the start command to:
-   - `php -S 0.0.0.0:$PORT -t backend`
-3. Add these environment variables:
-   - `DB_HOST=your-mysql-host`
-   - `DB_NAME=mits_cms`
-   - `DB_USER=your-mysql-user`
-   - `DB_PASSWORD=your-mysql-password`
-   - `FRONTEND_ORIGINS=https://your-netlify-app.netlify.app,http://localhost:5173`
-4. Make sure your MySQL database is reachable from Render.
+## 2. Backend (InfinityFree)
+1. Upload the `backend/` folder to your InfinityFree hosting account.
+2. Ensure the PHP entry points are served from the `backend` directory.
+3. Keep the existing database credentials in `backend/config.php` unchanged.
+4. The production backend base URL is `https://mits-cms.freedev.app/backend`.
 
-## Local development (your current setup)
-Use these values for the local PHPMyAdmin / MySQL server running on your machine:
-- `DB_HOST=localhost`
-- `DB_NAME=mits_cms`
-- `DB_USER=root`
-- `DB_PASSWORD=`
-- `VITE_API_BASE_URL=http://127.0.0.1:8000`
-- `VITE_ENABLE_MOCK_LOGIN=false`
-
-## 3. Verify
-- Open the Netlify URL.
-- Log in and confirm the frontend reaches the Render backend.
-- If uploads or login fail, confirm the backend URL and DB env vars are correct.
+## 3. Verification
+- Open the Netlify URL and confirm login and image loading work.
+- Verify the frontend reaches `https://mits-cms.freedev.app/backend`.
+- If uploads fail, confirm the InfinityFree PHP hosting path and backend URL are correct.
 
 ## 4. Important notes
-- The frontend no longer uses hard-coded `localhost/backend` URLs.
-- The backend now reads DB and CORS settings from environment variables.
+- The backend now uses a centralized `BASE_URL` value in `backend/config.php`.
+- The frontend should rely on `VITE_API_BASE_URL` instead of hard-coded backend URLs.
