@@ -2,41 +2,48 @@
 
 define('BASE_URL', 'https://mits-cms.freedev.app/backend');
 
-// Allowed Frontend Origins (production only)
+/*
+|--------------------------------------------------------------------------
+| CORS Configuration
+|--------------------------------------------------------------------------
+*/
+
 $allowedOrigins = [
-    'https://mits-cms.netlify.app',
-    'https://mits-cms.freedev.app'
+    'https://mits-cms-portal.netlify.app',
+    'https://mits-cms.freedev.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: *');
+if ($origin && in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: $origin");
 }
 
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// Only set JSON content-type for API files
+/*
+|--------------------------------------------------------------------------
+| JSON Response Header
+|--------------------------------------------------------------------------
+*/
+
 if (!defined('SKIP_JSON_HEADER')) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
 }
 
 /*
 |--------------------------------------------------------------------------
 | Database Configuration
 |--------------------------------------------------------------------------
-|
-| Replace the values below with your InfinityFree credentials.
-|
 */
 
 $host     = 'sql205.infinityfree.com';
@@ -44,23 +51,30 @@ $dbname   = 'if0_42135264_mits_cms';
 $username = 'if0_42135264';
 $password = 'Suryamsv04';
 
+/*
+|--------------------------------------------------------------------------
+| PDO Connection
+|--------------------------------------------------------------------------
+*/
+
 try {
 
     $pdo = new PDO(
         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
         $username,
-        $password
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]
     );
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 } catch (PDOException $e) {
 
     echo json_encode([
         'success' => false,
-        'message' => 'Connection failed: ' . $e->getMessage()
+        'message' => 'Database connection failed'
     ]);
 
     exit();
 }
-?>
