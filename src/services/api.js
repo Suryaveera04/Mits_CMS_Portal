@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
+const API_URL = import.meta.env.VITE_API_BASE_URL || "/backend";
 
 const originalFetch = window.fetch;
 const fetch = async (url, options = {}) => {

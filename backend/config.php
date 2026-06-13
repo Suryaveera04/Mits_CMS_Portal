@@ -1,6 +1,9 @@
 <?php
 
-define('BASE_URL', 'https://mits-cms.freedev.app/backend');
+// Dynamically detect BASE_URL so avatar URLs are never hardcoded to localhost
+$_protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$_host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+define('BASE_URL', $_protocol . '://' . $_host . '/backend');
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +22,9 @@ $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if ($origin && in_array($origin, $allowedOrigins, true)) {
     header("Access-Control-Allow-Origin: $origin");
+} else {
+    // Same-origin requests have no Origin header — allow them
+    header("Access-Control-Allow-Origin: *");
 }
 
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");

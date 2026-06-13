@@ -2,6 +2,13 @@
   publish = "dist"
   command = "npm run build"
 
+# Proxy /backend/* → InfinityFree so browser never makes a cross-origin request
+[[redirects]]
+  from = "/backend/*"
+  to = "https://mits-cms.freedev.app/backend/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
