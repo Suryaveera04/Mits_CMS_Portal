@@ -15,6 +15,22 @@ if (empty($faculty_id)) {
     exit;
 }
 
+// For HOD role: resolve the faculty_login.id via email so profile
+// section inserts use the correct FK (hod_login.id != faculty_login.id)
+if ($user_role === 'HOD') {
+    $stmt = $pdo->prepare("SELECT email FROM hod_login WHERE id = ? LIMIT 1");
+    $stmt->execute([$faculty_id]);
+    $hodRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($hodRow && !empty($hodRow['email'])) {
+        $stmt2 = $pdo->prepare("SELECT id FROM faculty_login WHERE email = ? LIMIT 1");
+        $stmt2->execute([$hodRow['email']]);
+        $flRow = $stmt2->fetch(PDO::FETCH_ASSOC);
+        if ($flRow) {
+            $faculty_id = $flRow['id']; // use faculty_login.id for all profile tables
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTING LOGIC
 //

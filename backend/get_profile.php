@@ -40,11 +40,22 @@ try {
     // Get basic info — check the correct table first based on role
     $isHod = ($user_role === 'HOD');
     if ($isHod) {
+        // Fetch HOD basic info from hod_login
         $stmt = $pdo->prepare("SELECT profile_status, name AS display_name, designation, email, qualification, avatar FROM hod_login WHERE id = ?");
         $stmt->execute([$faculty_id]);
         $faculty = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Resolve the faculty_login.id via email so profile section queries use the correct FK
+        if ($faculty && !empty($faculty['email'])) {
+            $stmt2 = $pdo->prepare("SELECT id FROM faculty_login WHERE email = ? LIMIT 1");
+            $stmt2->execute([$faculty['email']]);
+            $flRow = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($flRow) {
+                $faculty_id = $flRow['id']; // override: all profile tables use this id
+            }
+        }
+
         if (!$faculty) {
-            // fallback
             $stmt = $pdo->prepare("SELECT profile_status, faculty_name AS display_name, designation, email, qualification, avatar FROM faculty_login WHERE id = ?");
             $stmt->execute([$faculty_id]);
             $faculty = $stmt->fetch(PDO::FETCH_ASSOC);
