@@ -1,0 +1,10 @@
+# Pass Authorization header through to PHP (fixes JWT on shared hosts)
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# Disable bot/DDoS protection for public API endpoints
+<LocationMatch "^/backend/public_api/">
+    SetEnvIf Request_URI "." noddos
+    SetEnvIf Request_URI "." no_protection
+</LocationMatch>
