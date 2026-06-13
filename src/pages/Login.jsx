@@ -74,7 +74,7 @@ export default function Login() {
       try {
         data = rawText ? JSON.parse(rawText) : {};
       } catch {
-        throw new Error('Backend returned an HTML/invalid response. Make sure the PHP backend is running and the API path is correct.');
+        throw new Error('Backend returned an invalid response. Make sure the PHP backend is running.');
       }
 
       if (!res.ok || !data.success) {
