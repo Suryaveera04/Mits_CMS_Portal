@@ -99,22 +99,23 @@ function validateDepartmentOwnership($department_id, $submitted_by) {
  * CRITICAL FIX: Uses department_id (INT FK) not department (VARCHAR)
  */
 function getDepartmentFilterForFetch($pdo, &$where, &$params, $tableAlias = '') {
-    $user = requireAuth();
+    $user   = authenticate(); // null if not logged in
     $prefix = $tableAlias ? $tableAlias . '.' : '';
-    $role = strtoupper($user['role'] ?? '');
+    $role   = strtoupper($user['role'] ?? '');
 
-    if (in_array($role, ['HOD', 'FACULTY'])) {
-        // Always restrict to own department — non-negotiable
-        $where[] = "{$prefix}department_id = ?";
+    if ($user && in_array($role, ['HOD', 'FACULTY'])) {
+        // Logged-in HOD/Faculty: always restrict to their own department only
+        $where[]  = "{$prefix}department_id = ?";
         $params[] = intval($user['department_id']);
-    } else {
-        // Admin: optionally filter by department query param
+    } elseif ($user && $role === 'ADMIN') {
+        // Admin: optionally filter by ?department= query param
         $dept = $_GET['department'] ?? null;
         if ($dept) {
-            $where[] = "{$prefix}department_id = (SELECT id FROM departments WHERE code = ? LIMIT 1)";
+            $where[]  = "{$prefix}department_id = (SELECT id FROM departments WHERE code = ? LIMIT 1)";
             $params[] = $dept;
         }
     }
+    // No token (public visitor): no department filter applied — all content visible
 }
 
 /**
