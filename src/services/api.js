@@ -3,11 +3,12 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || "/backend";
 const originalFetch = window.fetch;
 const fetch = async (url, options = {}) => {
   const token = localStorage.getItem('token');
-  const headers = {
-    ...(options.headers || {})
-  };
+  const headers = { ...(options.headers || {}) };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    // Append token as query param — fallback for hosts that strip Authorization header
+    const sep = url.includes('?') ? '&' : '?';
+    url = `${url}${sep}token=${token}`;
   }
   return originalFetch(url, { ...options, headers });
 };

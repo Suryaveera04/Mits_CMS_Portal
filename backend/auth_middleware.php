@@ -7,24 +7,27 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
 }
 
 function getBearerToken() {
-    $headers = null;
-    if (isset($_SERVER['Authorization'])) {
-        $headers = trim($_SERVER["Authorization"]);
-    } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-    } elseif (function_exists('apache_request_headers')) {
-        $requestHeaders = apache_request_headers();
-        $requestHeaders = array_change_key_case($requestHeaders, CASE_LOWER);
-        if (isset($requestHeaders['authorization'])) {
-            $headers = trim($requestHeaders['authorization']);
-        }
+    // 1. Standard Authorization header
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION']
+        ?? $_SERVER['Authorization']
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        ?? null;
+
+    // 2. Apache fallback (some shared hosts strip the header)
+    if (!$authHeader && function_exists('apache_request_headers')) {
+        $all = array_change_key_case(apache_request_headers(), CASE_LOWER);
+        $authHeader = $all['authorization'] ?? null;
     }
-    
-    if (!empty($headers)) {
-        if (preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
-            return $matches[1];
-        }
+
+    if ($authHeader && preg_match('/Bearer\s(\S+)/i', $authHeader, $m)) {
+        return $m[1];
     }
+
+    // 3. Last resort: token passed as ?token= query param (for hosts that strip headers)
+    if (!empty($_GET['token'])) {
+        return $_GET['token'];
+    }
+
     return null;
 }
 
